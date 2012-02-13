@@ -13,7 +13,7 @@ until both it and RethinkIRCd mature.
 
 Documentation
 -------------
-The best and most recent documentation can be cound inline in the header file
+The best and most recent documentation can be found inline in the header file
 ([here](https://github.com/JosephMoniz/irc-parser/blob/master/src/irc_parser.h))
 
 I'll develop a method to automate the abstraction of the inline documentation
