@@ -14,7 +14,7 @@ until both it and RethinkIRCd mature.
 Documentation
 -------------
 The best and most recent documentation can be found inline in the header file
-([here](https://github.com/JosephMoniz/irc-parser/blob/master/src/irc_parser.h))
+([here](https://github.com/JosephMoniz/irc-parser/blob/master/include/irc_parser.h))
 
 I'll develop a method to automate the abstraction of the inline documentation
 and parse it into the README here and also to dedicated a third party doc site.
