@@ -4,7 +4,11 @@
 #include <string.h>
 #include "irc_parser.h"
 
-//private
+#define IRC_PARSER_CALL_AND_PROGRESS_ON(_parser, _a, _b) do { \
+  if (_a == _b) { _irc_parser_call_and_progress(parser); }    \  
+} while(0)
+
+//// private
 void _irc_parser_append_raw(irc_parser *parser, char c) {
   parser->raw[parser->len++] = c;
 }
@@ -69,7 +73,7 @@ void _irc_parser_call_and_progress(irc_parser *parser) {
   _irc_parser_progress_state(parser);
 }
 
-//public
+//// public
 void irc_parser_init(irc_parser *parser) {
   parser->on_nick    = NULL;
   parser->on_name    = NULL;
@@ -107,24 +111,16 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
         }
         break;
       case IRC_STATE_NICK:
-        if (data[i] == '!') {
-          _irc_parser_call_and_progress(parser);
-        }
+        IRC_PARSER_CALL_AND_PROGRESS_ON(parser, data[i], '!');
         break;
       case IRC_STATE_NAME:
-        if (data[i] == '@') {
-          _irc_parser_call_and_progress(parser);
-        }
+        IRC_PARSER_CALL_AND_PROGRESS_ON(parser, data[i], '@');
         break;
       case IRC_STATE_HOST:
-        if (data[i] == ' ') {
-          _irc_parser_call_and_progress(parser);
-        }
+        IRC_PARSER_CALL_AND_PROGRESS_ON(parser, data[i], ' ');
         break;
       case IRC_STATE_COMMAND:
-        if (data[i] == ' ') {
-          _irc_parser_call_and_progress(parser);
-        }
+        IRC_PARSER_CALL_AND_PROGRESS_ON(parser, data[i], ' ');
         break;
       case IRC_STATE_PARAMS:
         if (data[i] == ' ') {
