@@ -5,7 +5,7 @@
 #include "irc_parser.h"
 
 #define IRC_PARSER_CALL_AND_PROGRESS_ON(_parser, _a, _b) do { \
-  if (_a == _b) { _irc_parser_call_and_progress(parser); }    \  
+  if (_a == _b) { _irc_parser_call_and_progress(parser); }    \
 } while(0)
 
 //// private
@@ -60,7 +60,10 @@ void _irc_parser_call(irc_parser *parser) {
                 , parser->len - parser->last - 1
                 );
 
-  // TODO: error checking 
+  // TODO: error checking
+  if (result) {
+    //
+  }
 }
 
 void _irc_parser_progress_state(irc_parser *parser) {
@@ -135,6 +138,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
       }
     }
   }
+  return len;
 }
 
 void irc_parser_on_nick(irc_parser *parser, irc_parser_cb cb) {
@@ -184,35 +188,36 @@ int main(int argc, char **argv) {
   irc_parser_execute(&parser, server, strlen(server));
 }
 
-void __write(const char *section, const char *at, size_t len) {
+int __write(const char *section, const char *at, size_t len) {
   write(1, section, strlen(section));
   write(1, ": ", 2);
   write(1, at, len);
   write(1, "\n", 1);
+  return 0;
 }
 
 int nick(irc_parser *parser, const char *at, size_t len) {
-  __write("Nick", at, len);
+  return __write("Nick", at, len);
 }
 
 int name(irc_parser *parser, const char *at, size_t len) {
-  __write("Name", at, len);  
+  return __write("Name", at, len);  
 }
 
 int host(irc_parser *parser, const char *at, size_t len) {
-  __write("Host", at, len);  
+  return __write("Host", at, len);  
 }
 
 int command(irc_parser *parser, const char *at, size_t len) {
-  __write("Command", at, len);  
+  return __write("Command", at, len);  
 }
 
 int param(irc_parser *parser, const char *at, size_t len) {
-  __write("Param", at, len);  
+  return __write("Param", at, len);  
 }
 
 int end(irc_parser *parser, const char *at, size_t len) {
-  __write("End", at, len);  
+  return __write("End", at, len);  
 }
 
 

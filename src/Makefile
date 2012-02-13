@@ -1,2 +1,5 @@
+CC=gcc
+FLAGS=-Wall -O2 -c --std=c99
+
 default:
-	gcc --std=c99 -o irc_parser irc_parser.c
+	$(CC) $(FLAGS) irc_parser.c
