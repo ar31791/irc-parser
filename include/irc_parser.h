@@ -2,9 +2,27 @@
 #define irc_parser_h
 
 /**
+ *
+ */
+#define IRC_PARSER_SETTINGS_BASE_CLASS \
+  irc_parser_cb on_nick;               \
+  irc_parser_cb on_name;               \
+  irc_parser_cb on_host;               \
+  irc_parser_cb on_command;            \
+  irc_parser_cb on_param;              \
+  irc_parser_cb on_end;                \
+  irc_parser_cb on_error
+
+
+/**
  * This is just the convenience typedef for the parser struct
  */
 typedef struct irc_parser_s irc_parser;
+
+/**
+ * The convenience typedef for the parser settings struct
+ */
+typedef struct irc_parser_settings_s irc_parser_settings;
 
 /**
  * This is the typedef for the callback type that will be called on
@@ -41,6 +59,7 @@ enum irc_parser_state {
 enum irc_parser_error {
   IRC_ERROR_NONE = 0,
   IRC_ERROR_PARSE,
+  IRC_ERROR_UNDEF_STATE,
   IRC_ERROR_LENGTH,
   IRC_ERROR_USER
 };
@@ -59,17 +78,26 @@ enum irc_parser_error {
  * reset and be ready to parse the next incoming IRC message.
  */
 struct irc_parser_s {
+  IRC_PARSER_SETTINGS_BASE_CLASS;
   int len;
   int last;
   enum irc_parser_state state;
   enum irc_parser_error error;
   char raw[513];
-  irc_parser_cb on_nick;
-  irc_parser_cb on_name;
-  irc_parser_cb on_host;
-  irc_parser_cb on_command;
-  irc_parser_cb on_param;
-  irc_parser_cb on_end;
+};
+
+/**
+ * This is the base class for the `irc_parser_s` struct. It is used a
+ * reusable container that holds all of the callbacks to be used by
+ * `irc_parser_s`'s. This is both an optimization and simplification
+ * abstraction. Instead of having to manually add each callback to 
+ * every parser context you're going to need, you just assign the
+ * callbacks once to an instance of `irc_parser_settings_s` and assing
+ * the settings instance to each callback. You must initialize this
+ * struct via `irc_parser_settings_init()` before using it.
+ */
+struct irc_parser_settings_s {
+  IRC_PARSER_SETTINGS_BASE_CLASS;
 };
 
 /**
@@ -80,7 +108,7 @@ struct irc_parser_s {
  * @param irc_parser *parser - The parser to initialize
  * @returns void
  */
-void irc_parser_init(irc_parser *parser);
+void irc_parser_init(irc_parser *parser, irc_parser_settings *settings);
 
 /**
  * This function is used to reset the internal state of a parser
@@ -109,60 +137,6 @@ void irc_parser_reset(irc_parser *parser);
 size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len);
 
 /**
- * This binds a callback to the nick state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_nick(irc_parser *parser, irc_parser_cb cb);
-
-/**
- * This binds a callback to the name state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_name(irc_parser *parser, irc_parser_cb cb);
-
-/**
- * This binds a callback to the host state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_host(irc_parser *parser, irc_parser_cb cb);
-
-/**
- * This binds a callback to the command state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_command(irc_parser *parser, irc_parser_cb cb);
-
-/**
- * This binds a callback to the param state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_param(irc_parser *parser, irc_parser_cb cb);
-
-/**
- * This binds a callback to the message end state transformation
- *
- * @param irc_parser *parser - The parser to bind `cb` to
- * @param irc_parser_cb cb   - The callback to bind
- * @returns void
- */
-void irc_parser_on_end(irc_parser *parser, irc_parser_cb cb);
-
-/**
  * This function takes a parser and returns non zero if the 
  * parser is currently in an error state.
  *
@@ -189,5 +163,28 @@ enum irc_parser_error irc_parser_get_error(irc_parser *parser);
  * @returns const char*      - The associated error string.  
  */
 const char* irc_parser_error_string(irc_parser *parser);
+
+/**
+ * This is the constructor for the `irc_parser_settings` struct. It
+ * should be called on each `irc_parser_settings` struct before use.
+ *
+ * @param irc_parser_settings *settings - The settings struct to init
+ * @param irc_parser_cb on_nick         - The nick callback or NULL
+ * @param irc_parser_cb on_name         - The name callback or NULL
+ * @param irc_parser_cb on_host         - The host callback or NULL
+ * @param irc_parser_cb on_command      - The command callback or NULL
+ * @param irc_parser_cb on_param        - The param callback or NULL
+ * @param irc_parser_cb on_end          - The end callback or NULL
+ * @param irc_parser_cb on_error        - The error callback or NULL
+ */
+void irc_parser_settings_init(irc_parser_settings *settings,
+                              irc_parser_cb on_nick,
+                              irc_parser_cb on_name,
+                              irc_parser_cb on_host,
+                              irc_parser_cb on_command,
+                              irc_parser_cb on_param,
+                              irc_parser_cb on_end,
+                              irc_parser_cb on_error);
+
 
 #endif irc_parser_h
