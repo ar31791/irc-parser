@@ -7,7 +7,7 @@
   if (_a == _b) { _irc_parser_call_and_progress(parser); }    \
 } while(0)
 
-#define IRC_PARSER_APPEND_RAW(_parser, _a) do {               \
+#define IRC_PARSER_APPEND_RAW(_parser, _a) do {           \
   _parser->raw[_parser->len++] = _a;                          \
   if (_parser->len > 512) {                                   \
     _parser->state = IRC_STATE_ERROR;                         \
@@ -73,8 +73,10 @@ void _irc_parser_call_and_progress(irc_parser *parser) {
   _irc_parser_progress_state(parser);
 }
 
-void _irc_parser_trigger_error(irc_parser *parser, const char *data, 
-                               int offset, size_t len) {
+void _irc_parser_trigger_error(irc_parser *parser, const char *data, int offset,
+                               size_t len, enum irc_parser_error error) {
+  parser->error = error;
+  parser->state = IRC_STATE_ERROR;
   if (parser->on_error != NULL) {
     parser->on_error(parser, &data[offset], len - offset);
   }
@@ -82,13 +84,8 @@ void _irc_parser_trigger_error(irc_parser *parser, const char *data,
 
 //// public
 
-void irc_parser_init(irc_parser *parser) {
-  parser->on_nick    = NULL;
-  parser->on_name    = NULL;
-  parser->on_host    = NULL;
-  parser->on_command = NULL;
-  parser->on_param   = NULL;
-  parser->on_end     = NULL;
+void irc_parser_init(irc_parser *parser, irc_parser_settings *settings) {
+  memcpy(parser, settings, sizeof(irc_parser_settings));
   irc_parser_reset(parser);
 }
 
@@ -149,44 +146,12 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
         parser->error = IRC_ERROR_UNDEF_STATE;
       case IRC_STATE_ERROR:
         // pass remaining data to the error callback
-        _irc_parser_trigger_error(parser, data, i, len);
-        break;
+        _irc_parser_trigger_error(parser, data, i, len, parser->error);
+        return i;
       }
     }
   }
   return len;
-}
-
-void irc_parser_on_nick(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_nick = cb;
-}
-
-void irc_parser_on_name(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_name = cb;
-}
-
-void irc_parser_on_host(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_host = cb;
-}
-
-void irc_parser_on_command(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_command = cb;
-}
-
-void irc_parser_on_param(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_param = cb;
-}
-
-void irc_parser_on_end(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_end = cb;
-}
-
-void irc_parser_on_error(irc_parser *parser, irc_parser_cb cb) {
-  parser->on_error = cb;
-}
-
-int irc_parser_has_error(irc_parser *parser) {
-  return 1;
 }
 
 enum irc_parser_error irc_parser_get_error(irc_parser *parser) {
@@ -197,4 +162,20 @@ const char*  irc_parser_error_string(irc_parser *parser) {
   return "";
 }
 
+void irc_parser_settings_init(irc_parser_settings *settings,
+                              irc_parser_cb on_nick,
+                              irc_parser_cb on_name,
+                              irc_parser_cb on_host,
+                              irc_parser_cb on_command,
+                              irc_parser_cb on_param,
+                              irc_parser_cb on_end,
+                              irc_parser_cb on_error) {
+  settings->on_nick    = on_nick;
+  settings->on_name    = on_name;
+  settings->on_host    = on_host;
+  settings->on_command = on_command;
+  settings->on_param   = on_param;
+  settings->on_end     = on_end;
+  settings->on_error   = on_error;
+}
 
