@@ -13,13 +13,6 @@ void _irc_parser_append_raw(irc_parser *parser, char c) {
   parser->raw[parser->len++] = c;
 }
 
-void _irc_parser_reinit(irc_parser *parser) {
-  parser->len    = 0;
-  parser->last   = 0;
-  parser->state  = IRC_STATE_INIT;
-  parser->raw[0] = '\0';  
-}
-
 irc_parser_cb _irc_parser_get_cb(irc_parser *parser) {
   switch(parser->state) {
   case IRC_STATE_INIT:
@@ -84,7 +77,14 @@ void irc_parser_init(irc_parser *parser) {
   parser->on_command = NULL;
   parser->on_param   = NULL;
   parser->on_end     = NULL;
-  _irc_parser_reinit(parser);
+  irc_parser_reset(parser);
+}
+
+void irc_parser_reset(irc_parser *parser) {
+  parser->len    = 0;
+  parser->last   = 0;
+  parser->state  = IRC_STATE_INIT;
+  parser->raw[0] = '\0';  
 }
 
 size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
@@ -96,7 +96,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
     case '\n':
       if (parser->state == IRC_STATE_END) {
         _irc_parser_call(parser);
-        _irc_parser_reinit(parser);
+        irc_parser_reset(parser);
       } else {
         return -1;
       }
@@ -164,4 +164,17 @@ void irc_parser_on_param(irc_parser *parser, irc_parser_cb cb) {
 void irc_parser_on_end(irc_parser *parser, irc_parser_cb cb) {
   parser->on_end = cb;
 }
+
+int irc_parser_has_error(irc_parser *parser) {
+  return 1;
+}
+
+enum irc_parser_error irc_parser_get_error(irc_parser *parser) {
+  return IRC_ERROR_USER;
+}
+
+const char*  irc_parser_error_string(irc_parser *parser) {
+  return "";
+}
+
 
