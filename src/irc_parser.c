@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> // remove this eventually
 #include <string.h>
 #include "irc_parser.h"
 
@@ -8,10 +7,15 @@
   if (_a == _b) { _irc_parser_call_and_progress(parser); }    \
 } while(0)
 
+#define IRC_PARSER_APPEND_RAW(_parser, _a) do {               \
+  _parser->raw[_parser->len++] = _a;                          \
+  if (_parser->len > 512) {                                   \
+    _parser->state = IRC_STATE_ERROR;                         \
+    _parser->error = IRC_ERROR_LENGTH;                        \
+  }                                                           \
+} while(0)
+
 //// private
-void _irc_parser_append_raw(irc_parser *parser, char c) {
-  parser->raw[parser->len++] = c;
-}
 
 irc_parser_cb _irc_parser_get_cb(irc_parser *parser) {
   switch(parser->state) {
@@ -23,7 +27,7 @@ irc_parser_cb _irc_parser_get_cb(irc_parser *parser) {
   case IRC_STATE_PARAMS:   return parser->on_param;
   case IRC_STATE_TRAILING: return parser->on_param;
   case IRC_STATE_END:      return parser->on_param;
-  case IRC_STATE_ERROR:
+  case IRC_STATE_ERROR:    return parser->on_error;
   default:                 return NULL;
   }
 }
@@ -69,7 +73,15 @@ void _irc_parser_call_and_progress(irc_parser *parser) {
   _irc_parser_progress_state(parser);
 }
 
+void _irc_parser_trigger_error(irc_parser *parser, const char *data, 
+                               int offset, size_t len) {
+  if (parser->on_error != NULL) {
+    parser->on_error(parser, &data[offset], len - offset);
+  }
+}
+
 //// public
+
 void irc_parser_init(irc_parser *parser) {
   parser->on_nick    = NULL;
   parser->on_name    = NULL;
@@ -102,7 +114,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
       }
       break;
     default:
-      _irc_parser_append_raw(parser, data[i]);
+      IRC_PARSER_APPEND_RAW(parser, data[i]);
       switch(parser->state) {
       case IRC_STATE_INIT:
         if (data[i] == ':') {
@@ -133,7 +145,11 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
           _irc_parser_progress_state(parser);
         }
         break;
-      default: // do nothing
+      default:
+        parser->error = IRC_ERROR_UNDEF_STATE;
+      case IRC_STATE_ERROR:
+        // pass remaining data to the error callback
+        _irc_parser_trigger_error(parser, data, i, len);
         break;
       }
     }
@@ -163,6 +179,10 @@ void irc_parser_on_param(irc_parser *parser, irc_parser_cb cb) {
 
 void irc_parser_on_end(irc_parser *parser, irc_parser_cb cb) {
   parser->on_end = cb;
+}
+
+void irc_parser_on_error(irc_parser *parser, irc_parser_cb cb) {
+  parser->on_error = cb;
 }
 
 int irc_parser_has_error(irc_parser *parser) {
