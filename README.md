@@ -9,3 +9,20 @@ Warning
 -----
 This library has not reached 1.0 and it's API is subject to dramatic change
 until both it and RethinkIRCd mature.
+
+
+Documentation
+-------------
+The best and most recent documentation can be cound inline in the header file
+([here](https://github.com/JosephMoniz/irc-parser/blob/master/src/irc_parser.h))
+
+I'll develop a method to automate the abstraction of the inline documentation
+and parse it into the README here and also to dedicated a third party doc site.
+This is far from the highest of priorities right now though.
+
+High Value Targets
+------------------
+ * Implement a solid test suite
+ * Implement a solid benchmarking suite
+ * Implement continuous integration with Travis-CI
+ * Create documentation site and clean up this README
