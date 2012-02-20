@@ -3,11 +3,10 @@
 #include <string.h>
 #include "irc_parser.h"
 
-#define IRC_PARSER_CALL_AND_PROGRESS_ON(_parser, _a, _b) do { \
-  if (_a == _b) { _irc_parser_call_and_progress(parser); }    \
-} while(0)
+#define IRC_PARSER_CALL_AND_PROGRESS_ON(_parser, _a, _b)  \
+  if (_a == _b)  _irc_parser_call_and_progress(parser)
 
-#define IRC_PARSER_APPEND_RAW(_parser, _a) do {           \
+#define IRC_PARSER_APPEND_RAW(_parser, _a) do {               \
   _parser->raw[_parser->len++] = _a;                          \
   if (_parser->len > 512) {                                   \
     _parser->state = IRC_STATE_ERROR;                         \
@@ -43,13 +42,11 @@ enum irc_parser_state _irc_get_next_state(irc_parser *parser) {
   case IRC_STATE_TRAILING: return IRC_STATE_END;
   case IRC_STATE_END:      return IRC_STATE_INIT;
   case IRC_STATE_ERROR:    return IRC_STATE_ERROR;
-  default:                 return IRC_STATE_ERROR;;
+  default:                 return IRC_STATE_ERROR;
   }
 }
 
-void _irc_parser_call(irc_parser *parser) {
-  irc_parser_cb f = _irc_parser_get_cb(parser);
-
+void _irc_parser_force_call(irc_parser *parser, irc_parser_cb f) {
   if (f == NULL) { return; }
 
   int result = f( parser
@@ -61,6 +58,10 @@ void _irc_parser_call(irc_parser *parser) {
   if (result) {
     //
   }
+}
+
+void _irc_parser_call(irc_parser *parser) {
+  _irc_parser_force_call(parser, _irc_parser_get_cb(parser));
 }
 
 void _irc_parser_progress_state(irc_parser *parser) {
@@ -93,7 +94,7 @@ void irc_parser_reset(irc_parser *parser) {
   parser->len    = 0;
   parser->last   = 0;
   parser->state  = IRC_STATE_INIT;
-  parser->raw[0] = '\0';  
+  parser->raw[0] = '\0';
 }
 
 size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
@@ -105,6 +106,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
     case '\n':
       if (parser->state == IRC_STATE_END) {
         _irc_parser_call(parser);
+        _irc_parser_force_call(parser, parser->on_end);
         irc_parser_reset(parser);
       } else {
         return -1;
@@ -119,6 +121,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
           parser->state = IRC_STATE_NICK;
         } else {
           i--;
+          parser->len--;
           parser->state = IRC_STATE_COMMAND;
         }
         break;
@@ -142,13 +145,16 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
           _irc_parser_progress_state(parser);
         }
         break;
+      case IRC_STATE_TRAILING: break;
+      case IRC_STATE_ERROR:
+        _irc_parser_trigger_error(parser, data, i, len, parser->error);
+        return i;
       default:
         parser->error = IRC_ERROR_UNDEF_STATE;
-      case IRC_STATE_ERROR:
-        // pass remaining data to the error callback
         _irc_parser_trigger_error(parser, data, i, len, parser->error);
         return i;
       }
+      break;
     }
   }
   return len;
@@ -159,7 +165,14 @@ enum irc_parser_error irc_parser_get_error(irc_parser *parser) {
 }
 
 const char*  irc_parser_error_string(irc_parser *parser) {
-  return "";
+  switch(parser->error) {
+  case IRC_ERROR_NONE:        return "No error.";
+  case IRC_ERROR_PARSE:       return "Parse error.";
+  case IRC_ERROR_UNDEF_STATE: return "parser entered undefined state.";
+  case IRC_ERROR_LENGTH:      return "Message length exceeded the 512 limit";
+  case IRC_ERROR_USER:        return "API user raised an error.";
+  default:                    return "Undefined error state.";
+  }
 }
 
 void irc_parser_settings_init(irc_parser_settings *settings,
