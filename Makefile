@@ -1,3 +1,5 @@
+.PHONY : test clean
+
 default:
 	$(MAKE) -C src
 
@@ -6,3 +8,4 @@ test:
 
 clean:
 	$(MAKE) -C src clean
+	$(MAKE) -C test clean
