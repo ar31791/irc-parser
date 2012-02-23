@@ -36,6 +36,7 @@ int on_param(irc_parser *parser, const char *at, size_t len);
 int on_end(irc_parser *parser, const char *at, size_t len);
 int on_error(irc_parser *parser, const char *at, size_t len);
 
+void print_expected_results();
 void print_test_result(int result);
 void next_case();
 

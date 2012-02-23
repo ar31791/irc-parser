@@ -68,14 +68,12 @@ enum irc_parser_error {
  * This is the struct that makes reentrancy into our parser clean and
  * possible. It doesn't matter how you allocate the parser as long as
  * you pass it through it's constructor `irc_parser_init()` before
- * using it. Once the parser has been initialized callbacks must be
- * assigned to it using the propper `irc_parser_on_*()` functions.
- * Once all callbacks are set you may begin parsing incoming IRC
- * messages in chunks as the data comes in by calling `irc_parser_execute()`
- * on the data. As the parser transitions states it will call the
- * associated callbacks the user assigned. Once the end of the IRC message
- * has been reached the "on_end" callback will be fired and the parser will
- * reset and be ready to parse the next incoming IRC message.
+ * using it. `irc_parser_init()` takes a pointer to the parser to
+ * initialize as it's first argument and then takes a pointer to an
+ * `irc_parser_settings` struct as it's second argument. The settings
+ * struct should be initialized using it's constructor and should
+ * contain all the callbacks for the events the user wishes to 
+ * listen to.
  */
 struct irc_parser_s {
   IRC_PARSER_SETTINGS_BASE_CLASS;
@@ -87,12 +85,12 @@ struct irc_parser_s {
 };
 
 /**
- * This is the base class for the `irc_parser_s` struct. It is used a
+ * This is the base class for the `irc_parser` struct. It is used as
  * reusable container that holds all of the callbacks to be used by
- * `irc_parser_s`'s. This is both an optimization and simplification
+ * `irc_parser`'s. This is both an optimization and simplification
  * abstraction. Instead of having to manually add each callback to 
  * every parser context you're going to need, you just assign the
- * callbacks once to an instance of `irc_parser_settings_s` and assing
+ * callbacks once to an instance of `irc_parser_settings` and assign
  * the settings instance to each callback. You must initialize this
  * struct via `irc_parser_settings_init()` before using it.
  */

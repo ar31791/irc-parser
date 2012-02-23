@@ -4,7 +4,13 @@
 
 #include "test.h"
 
-#define NUM_TESTS sizeof(cases) / sizeof(irc_parser_test_case)
+#define CMP_RESULTS(_val) do {                                                \
+  if (strncmp(result._val, cases[current_case]._val, result._val_len) != 0) { \
+    return 0;                                                                 \
+  }                                                                           \
+} while(0)
+
+#define NUM_TESTS (sizeof(cases) / sizeof(irc_parser_test_case))
 
 const irc_parser_test_case cases[] = {
   { "PRIVMSG #test :hello world!\r\n"
@@ -12,49 +18,49 @@ const irc_parser_test_case cases[] = {
   , NULL
   , NULL
   , "PRIVMSG"
-  , "#test hello world!"
+  , "#testhello world!"
   },
   { ":lohkey!name@host PRIVMSG #test :hello test script!\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "PRIVMSG"
-  , "#test hello test script!"
+  , "#testhello test script!"
   },
   { "PRIVMSG lohkey :boo!\r\n"
   , NULL
   , NULL
   , NULL
   , "PRIVMSG"
-  , "lohkey boo!"
+  , "lohkeyboo!"
   },
   { ":lohkey!name@host NOTICE test :PM me again and ban hammer4u\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "NOTICE"
-  , "test PM me again and ban hammer4u"
+  , "testPM me again and ban hammer4u"
   },
   { "NOTICE lohkey :what about notices?\r\n"
   , NULL
   , NULL
   , NULL
   , "NOTICE"
-  , "lohkey what about notices?"
+  , "lohkeywhat about notices?"
   },
   { "KICK #test test :for testing purposes\r\n"
   , NULL
   , NULL
   , NULL
   , "KICK"
-  , "#test test for testing purposes"
+  , "#testtestfor testing purposes"
   },
   { ":lohkey!name@host KICK #test test :for testing purposes\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "KICK"
-  , "#test test for testing purposes"
+  , "#testtestfor testing purposes"
   }
 };
 
@@ -114,22 +120,113 @@ int on_command(irc_parser *parser, const char *at, size_t len) {
 
 int on_param(irc_parser *parser, const char *at, size_t len) {
   memcpy(&param_buffer[result.param_len], at, len);
-  result.param_len += len;
+  result.param = param_buffer;
   return 0;
 }
 
+int _passes_current_case() {
+  const irc_parser_test_case *c = &cases[current_case];
+  if ((result.nick == NULL || c->nick == NULL) && result.nick != c->nick) {
+    return 0;
+  }
+  if (strncmp(result.nick, c->nick, result.nick_len) != 0) {
+    return 0;
+  }
+  if ((result.name == NULL || c->name == NULL) && result.name != c->name) {
+    return 0;
+  }
+  if (strncmp(result.name, c->name, result.name_len) != 0) {
+    return 0;
+  }
+  if ((result.host == NULL || c->host == NULL) && result.host != c->host) {
+    return 0;
+  }
+  if (strncmp(result.host, c->host, result.host_len) != 0) {
+    return 0;
+  }
+  if ((result.command == NULL || c->command == NULL) && 
+      result.command != c->command) {
+    return 0;
+  }
+  if (strncmp(result.command, c->command, result.command_len) != 0) {
+    return 0;
+  }
+  if ((result.param == NULL || c->param == NULL) && result.param != c->param) {
+    return 0;
+  }
+  if (strncmp(result.param, c->param, result.param_len) != 0) {
+    return 0;
+  }
+  return 1;
+}
+
+void _reset_results() {
+  memset(&result, 0, sizeof(irc_parser_test_result));
+}
+
 int on_end(irc_parser *parser, const char *at, size_t len) {
-  print_test_result(1);
-  next_case();
-  all_passing &= 1;
+  int passing = _passes_current_case();
+  if (passing) {
+    print_test_result(passing);
+    _reset_results();
+    next_case();
+    all_passing &= 1;
+  } else {
+    on_error(parser, at, len);
+  }
   return 0;
 }
 
 int on_error(irc_parser *parser, const char *at, size_t len) {
   print_test_result(0);
+  print_expected_results();
+  _reset_results();
   next_case();
   all_passing = 0;
   return 0;
+}
+
+void print_expected_results() {
+  const irc_parser_test_case *c_case = &cases[current_case];
+  char nick[513], name[513], host[513], command[513], param[513];
+  printf("Expected: { raw: %s"
+         "          , nick: %s\n"
+         "          , name: %s\n"
+         "          , host: %s\n"
+         "          , command: %s\n"
+         "          , param: %s\n"
+         "          }\n"
+         , c_case->test
+         , c_case->nick
+         , c_case->name
+         , c_case->host
+         , c_case->command
+         , c_case->param
+         );
+  strncpy(nick, result.nick, result.nick_len);
+  nick[result.nick_len] = '\0';
+  strncpy(name, result.name, result.name_len);
+  name[result.name_len] = '\0';
+  strncpy(host, result.host, result.host_len);
+  host[result.host_len] = '\0';
+  strncpy(command, result.command, result.command_len);
+  command[result.command_len] = '\0';
+  strncpy(param, result.param, result.param_len);
+  param[result.param_len] = '\0';
+  printf("Got:      { raw: %s\n"
+         "          , nick: %s\n"
+         "          , name: %s\n"
+         "          , host: %s\n"
+         "          , command: %s\n"
+         "          , param: %s\n"
+         "          }\n"
+         , parser.raw
+         , (nick[0])    ? nick    : NULL
+         , (name[0])    ? name    : NULL
+         , (host[0])    ? host    : NULL
+         , (command[0]) ? command : NULL
+         , (param[0])   ? param   : NULL
+         );
 }
 
 void print_test_result(int result) {
@@ -142,7 +239,7 @@ void print_test_result(int result) {
 
 void next_case() {
   result.param_len = 0;
-  current_case = current_case + 1 % NUM_TESTS;
+  current_case = (current_case + 1) % NUM_TESTS;
   irc_parser_reset(&parser);
 }
 
