@@ -1,3 +1,0 @@
-[submodule "build/gyp"]
-	path = build/gyp
-	url = https://github.com/creationix/gyp.git
