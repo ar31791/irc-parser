@@ -22,7 +22,4 @@ This is far from the highest of priorities right now though.
 
 High Value Targets
 ------------------
- * Implement a solid test suite
- * Implement a solid benchmarking suite
- * Implement continuous integration with Travis-CI
  * Create documentation site and clean up this README
