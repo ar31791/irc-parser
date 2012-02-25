@@ -186,4 +186,4 @@ void irc_parser_settings_init(irc_parser_settings *settings,
                               irc_parser_cb on_error);
 
 
-#endif irc_parser_h
+#endif
