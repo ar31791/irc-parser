@@ -105,6 +105,7 @@ size_t irc_parser_execute(irc_parser *parser, const char *data, size_t len) {
       break;
     case '\n':
       if (parser->state == IRC_STATE_END) {
+        parser->len++;
         _irc_parser_call(parser);
         _irc_parser_force_call(parser, parser->on_end);
         irc_parser_reset(parser);

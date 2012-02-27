@@ -1,6 +1,6 @@
 CC?=gcc
 
-CFLAGS += -Wall -Wextra -Werror --std=c99 
+CFLAGS += -Wall -Wextra -Werror -pedantic --std=c99 
 CFLAGS_DEBUG = $(CFLAGS) -O0 -g
 CFLAGS_FAST = $(CFLAGS) -03
 CFLAGS_LIB = $(CFLAGS_FAST) -fPIC
