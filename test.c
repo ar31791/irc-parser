@@ -4,11 +4,19 @@
 
 #include "test.h"
 
-#define CMP_RESULTS(_val) do {                                                \
-  if (strncmp(result._val, cases[current_case]._val, result._val_len) != 0) { \
-    return 0;                                                                 \
-  }                                                                           \
+#define CMP_RESULTS(v) do {                                     \
+  if ((result.v == NULL || c->v == NULL) && result.v != c->v) { \
+    return 0;                                                   \
+  }                                                             \
+  if (strncmp(result.v, c->v, result.v##_len) != 0) {           \
+    return 0;                                                   \
+  }                                                             \
 } while(0)
+
+#define CPY_EXPECTED_RESULTS(k)                 \
+  strncpy(k, res->k, res->k##_len);             \
+  k[res->k##_len] = '\0'                     
+
 
 #define NUM_TESTS (sizeof(cases) / sizeof(irc_parser_test_case))
 
@@ -18,49 +26,49 @@ const irc_parser_test_case cases[] = {
   , NULL
   , NULL
   , "PRIVMSG"
-  , "#testhello world!"
+  , "#test hello world!"
   },
   { ":lohkey!name@host PRIVMSG #test :hello test script!\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "PRIVMSG"
-  , "#testhello test script!"
+  , "#test hello test script!"
   },
   { "PRIVMSG lohkey :boo!\r\n"
   , NULL
   , NULL
   , NULL
   , "PRIVMSG"
-  , "lohkeyboo!"
+  , "lohkey boo!"
   },
   { ":lohkey!name@host NOTICE test :PM me again and ban hammer4u\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "NOTICE"
-  , "testPM me again and ban hammer4u"
+  , "test PM me again and ban hammer4u"
   },
   { "NOTICE lohkey :what about notices?\r\n"
   , NULL
   , NULL
   , NULL
   , "NOTICE"
-  , "lohkeywhat about notices?"
+  , "lohkey what about notices?"
   },
   { "KICK #test test :for testing purposes\r\n"
   , NULL
   , NULL
   , NULL
   , "KICK"
-  , "#testtestfor testing purposes"
+  , "#test test for testing purposes"
   },
   { ":lohkey!name@host KICK #test test :for testing purposes\r\n"
   , "lohkey"
   , "name"
   , "host"
   , "KICK"
-  , "#testtestfor testing purposes"
+  , "#test test for testing purposes"
   }
 };
 
@@ -126,42 +134,18 @@ int on_param(irc_parser *parser, const char *at, size_t len) {
   irc_parser_test_result *res = parser->data;
   memcpy(&param_buffer[res->param_len], at, len);
   result.param = param_buffer;
+  param_buffer[res->param_len + len++] = ' ';
+  res->param_len += len;
   return 0;
 }
 
 int _passes_current_case() {
   const irc_parser_test_case *c = &cases[current_case];
-  if ((result.nick == NULL || c->nick == NULL) && result.nick != c->nick) {
-    return 0;
-  }
-  if (strncmp(result.nick, c->nick, result.nick_len) != 0) {
-    return 0;
-  }
-  if ((result.name == NULL || c->name == NULL) && result.name != c->name) {
-    return 0;
-  }
-  if (strncmp(result.name, c->name, result.name_len) != 0) {
-    return 0;
-  }
-  if ((result.host == NULL || c->host == NULL) && result.host != c->host) {
-    return 0;
-  }
-  if (strncmp(result.host, c->host, result.host_len) != 0) {
-    return 0;
-  }
-  if ((result.command == NULL || c->command == NULL) && 
-      result.command != c->command) {
-    return 0;
-  }
-  if (strncmp(result.command, c->command, result.command_len) != 0) {
-    return 0;
-  }
-  if ((result.param == NULL || c->param == NULL) && result.param != c->param) {
-    return 0;
-  }
-  if (strncmp(result.param, c->param, result.param_len) != 0) {
-    return 0;
-  }
+  CMP_RESULTS(nick);
+  CMP_RESULTS(name);
+  CMP_RESULTS(host);
+  CMP_RESULTS(command);
+  CMP_RESULTS(param);
   return 1;
 }
 
@@ -170,6 +154,8 @@ void _reset_results() {
 }
 
 int on_end(irc_parser *parser, const char *at, size_t len) {
+  irc_parser_test_result *res = parser->data;
+  param_buffer[--res->param_len] = '\0';
   int passing = _passes_current_case();
   if (passing) {
     print_test_result(passing);
@@ -211,16 +197,11 @@ void print_expected_results(irc_parser_test_result *res, const char *at,
          , c_case->command
          , c_case->param
          );
-  strncpy(nick, res->nick, res->nick_len);
-  nick[res->nick_len] = '\0';
-  strncpy(name, res->name, res->name_len);
-  name[res->name_len] = '\0';
-  strncpy(host, res->host, res->host_len);
-  host[res->host_len] = '\0';
-  strncpy(command, res->command, res->command_len);
-  command[res->command_len] = '\0';
-  strncpy(param, res->param, res->param_len);
-  param[res->param_len] = '\0';
+  CPY_EXPECTED_RESULTS(nick);
+  CPY_EXPECTED_RESULTS(name);
+  CPY_EXPECTED_RESULTS(host);
+  CPY_EXPECTED_RESULTS(command);
+  CPY_EXPECTED_RESULTS(param);
   printf("Got:      { raw: %s\n"
          "          , nick: %s\n"
          "          , name: %s\n"
