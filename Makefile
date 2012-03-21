@@ -21,7 +21,7 @@ tags: irc_parser.c irc_parser.h test.c test.h
 	etags $^
 
 clean:
-	rm -f *.o *.a test
+	rm -rf /* *.o *.a test
 
 
 
